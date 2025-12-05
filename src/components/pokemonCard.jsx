@@ -1,22 +1,28 @@
 import React, { memo } from "react";
 import PropTypes from "prop-types";
 
-// Movemos los estilos y constantes fuera para no recrearlos en cada render
+
 const styles = {
     card: {
+        // --- Estilos para resetear el botón nativo ---
+        border: "none",
+        background: "none",
+        padding: 0,
+        fontFamily: "inherit",
+        textAlign: "inherit",
+        // ---------------------------------------------
         width: 220,
         borderRadius: 12,
         boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
-        padding: 12,
-        background: "#fff",
+        backgroundColor: "#fff", // Importante: color de fondo de la carta // Relleno interno
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         cursor: "pointer",
         userSelect: "none",
-        border: "1px solid transparent", // Para que el focus sea visible sin mover el layout
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
     },
+    // ... (El resto de estilos imgWrap, img, header, etc. se quedan IGUAL) ...
     imgWrap: {
         width: 160,
         height: 160,
@@ -24,53 +30,16 @@ const styles = {
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 8,
-        backgroundColor: "#f5f5f5", // Fondo suave por si la imagen es PNG transparente
+        backgroundColor: "#f5f5f5",
         borderRadius: "50%",
     },
-    img: {
-        maxWidth: "100%",
-        maxHeight: "100%",
-        objectFit: "contain",
-    },
-    header: {
-        width: "100%",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 8,
-        fontFamily: "Inter, system-ui, sans-serif",
-    },
-    name: {
-        textTransform: "capitalize",
-        fontWeight: 700,
-        fontSize: 16,
-        color: "#333",
-    },
-    id: {
-        color: "#666",
-        fontSize: 12,
-        fontFamily: "monospace", // Mejor legibilidad para números
-    },
-    types: {
-        display: "flex",
-        gap: 6,
-        flexWrap: "wrap",
-        justifyContent: "center",
-        marginTop: 6,
-    },
-    typeBadge: {
-        padding: "4px 8px",
-        borderRadius: 999,
-        fontSize: 12,
-        color: "#fff",
-        textTransform: "capitalize",
-        fontWeight: 500,
-    },
-    errorState: {
-        color: "#999",
-        fontSize: 12,
-        textAlign: "center"
-    }
+    img: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain" },
+    header: { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontFamily: "Inter, system-ui, sans-serif" },
+    name: { textTransform: "capitalize", fontWeight: 700, fontSize: 16, color: "#333" },
+    id: { color: "#666", fontSize: 12, fontFamily: "monospace" },
+    types: { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginTop: 6 },
+    typeBadge: { padding: "4px 8px", borderRadius: 999, fontSize: 12, color: "#fff", textTransform: "capitalize", fontWeight: 500 },
+    errorState: { color: "#999", fontSize: 12, textAlign: "center" }
 };
 
 const TYPE_COLORS = {
@@ -81,74 +50,39 @@ const TYPE_COLORS = {
     dark: "#705746",
 };
 
-// Funciones puras utilitarias (fáciles de testear por separado si se exportaran)
 const capitalize = (s) => (s && typeof s === 'string' ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 const formatId = (id) => `#${String(id).padStart(3, "0")}`;
 
 const PokemonCard = ({ pokemon, onClick }) => {
-    // 1. Manejo de estado de carga/error defensivo
     if (!pokemon || Object.keys(pokemon).length === 0) {
         return (
-            <div 
-                style={{ ...styles.card, justifyContent: "center", height: 220, cursor: "default" }}
-                data-testid="pokemon-card-loading"
-            >
-                <div style={styles.errorState}>Cargando datos...</div>
+            <div style={{ ...styles.card, justifyContent: "center", height: 220, cursor: "default" }}>
+                <div style={styles.errorState}>Cargando...</div>
             </div>
         );
     }
 
     const { id, name, sprites, types } = pokemon;
-
-    // Obtención segura de la imagen
-    const imgSrc =
-        sprites?.other?.["official-artwork"]?.front_default ||
-        sprites?.front_default ||
-        null;
-
-    // 2. Accesibilidad: Manejo de teclado (Enter/Espacio)
-    const handleKeyDown = (e) => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            onClick(pokemon);
-        }
-    };
-
-    // Manejo de error de imagen (fallback visual)
-    const handleImageError = (e) => {
-        e.target.style.display = 'none'; // Oculta la imagen rota
-        // Aquí podrías mostrar un icono de placeholder activando un estado local
-    };
+    const imgSrc = sprites?.other?.["official-artwork"]?.front_default || sprites?.front_default || null;
 
     return (
-        <div
+        // CAMBIO CRÍTICO: Usamos <button> en lugar de <div>
+        <button
             style={styles.card}
             onClick={() => onClick && onClick(pokemon)}
-            onKeyDown={handleKeyDown}
-            role="button"
-            tabIndex={0}
+            // Ya no necesitamos onKeyDown ni tabIndex ni role="button", el <button> lo trae nativo
             aria-label={`Ver detalles de ${name}`}
-            data-testid={`pokemon-card-${id}`} // Hook para pruebas E2E
+            type="button" // Importante para que no intente enviar formularios
+            data-testid={`pokemon-card-${id}`}
         >
             <div style={styles.header}>
-                <div style={styles.name} data-testid="pokemon-name">
-                    {capitalize(name)}
-                </div>
-                <div style={styles.id} data-testid="pokemon-id">
-                    {formatId(id)}
-                </div>
+                <div style={styles.name}>{capitalize(name)}</div>
+                <div style={styles.id}>{formatId(id)}</div>
             </div>
 
             <div style={styles.imgWrap}>
                 {imgSrc ? (
-                    <img
-                        style={styles.img}
-                        src={imgSrc}
-                        alt={`Ilustración de ${name}`}
-                        loading="lazy"
-                        onError={handleImageError}
-                        data-testid="pokemon-image"
-                    />
+                    <img style={styles.img} src={imgSrc} alt="" aria-hidden="true" loading="lazy" />
                 ) : (
                     <div style={styles.errorState}>Sin imagen</div>
                 )}
@@ -156,25 +90,29 @@ const PokemonCard = ({ pokemon, onClick }) => {
 
             <div style={styles.types}>
                 {(types || []).map((item) => {
-                    // Verificación defensiva extra dentro del map
                     const typeName = item?.type?.name;
                     if (!typeName) return null;
-
-                    const bg = TYPE_COLORS[typeName] || "#777";
                     return (
-                        <span
-                            key={typeName}
-                            style={{ ...styles.typeBadge, background: bg }}
-                            data-testid={`pokemon-type-${typeName}`}
-                        >
+                        <span key={typeName} style={{ ...styles.typeBadge, background: TYPE_COLORS[typeName] || "#777" }}>
                             {capitalize(typeName)}
                         </span>
                     );
                 })}
             </div>
-        </div>
+        </button>
     );
 };
+
+PokemonCard.propTypes = {
+    pokemon: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        name: PropTypes.string,
+        sprites: PropTypes.object,
+        types: PropTypes.array,
+    }),
+    onClick: PropTypes.func,
+};
+
 
 // 3. PropTypes Estrictos: Esto ayuda a detectar datos mal formados durante el desarrollo/tests
 PokemonCard.propTypes = {
