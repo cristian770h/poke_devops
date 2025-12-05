@@ -1,0 +1,13 @@
+# Identificador único del proyecto en Sonar
+sonar.projectKey=poke-devops
+sonar.projectName=PokeApp DevOps
+sonar.projectVersion=1.0
+
+# Rutas a analizar
+sonar.sources=src
+sonar.tests=src
+sonar.test.inclusions=**/*.test.jsx,**/*.spec.jsx
+sonar.exclusions=**/node_modules/**,**/dist/**,**/*.css
+
+# Codificación
+sonar.sourceEncoding=UTF-8
