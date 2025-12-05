@@ -70,7 +70,7 @@ const PokemonCard = ({ pokemon, onClick }) => {
         <button
             style={styles.card}
             onClick={() => onClick?.(pokemon)}
-            // Ya no necesitamos onKeyDown ni tabIndex ni role="button", el <button> lo trae nativo
+           
             aria-label={`Ver detalles de ${name}`}
             type="button" // Importante para que no intente enviar formularios
             data-testid={`pokemon-card-${id}`}
