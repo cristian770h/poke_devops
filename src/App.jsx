@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './App.css'
+// IMPORTANTE: Importamos el componente seguro que creamos
+import PokemonCard from './components/pokemonCard' 
 
 function App() {
   const [pokemons, setPokemons] = useState([])
+  // (Opcional) Estado para detectar si está offline, útil para la defensa PWA
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // 1. Consumo de API (Mínimo 30 pokemons)
+  // 1. Consumo de API (Mínimo 30 pokemons) [cite: 6]
   useEffect(() => {
     const fetchPokemons = async () => {
       try {
         const response = await axios.get('https://pokeapi.co/api/v2/pokemon?limit=30')
         const results = response.data.results
         
-        // Obtener detalles para la imagen
         const detailedPokemons = await Promise.all(
           results.map(async (p) => {
             const detail = await axios.get(p.url)
@@ -25,21 +28,42 @@ function App() {
       }
     }
     fetchPokemons()
+
+    // Listeners para el estado de red (Plus para la defensa PWA)
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [])
 
-  // 2. Lógica de Notificaciones Nativas
+  // 2. Lógica de Notificaciones Nativas [cite: 14]
   const handleNotify = (pokemonName) => {
-    // Solicitar permiso
+    // Verificar soporte
     if (!("Notification" in window)) {
       console.log("Este navegador no soporta notificaciones escritorio");
-    } else if (Notification.permission === "granted") {
-      // Si ya tiene permiso, enviar notificación
-      new Notification(`Has seleccionado a ${pokemonName}`);
+      return;
+    }
+
+    // Función auxiliar para lanzar la notificación
+    const spawnNotification = () => {
+       // [cite: 16] - Usamos new Notification, no alert
+       new Notification(`Has seleccionado a ${pokemonName}`, {
+         body: '¡Excelente elección de Pokémon!',
+         icon: '/pwa-192x192.png' // Usa el icono de tu PWA si quieres
+       });
+    };
+
+    if (Notification.permission === "granted") {
+      spawnNotification();
     } else if (Notification.permission !== "denied") {
-      // Pedir permiso
       Notification.requestPermission().then((permission) => {
         if (permission === "granted") {
-          new Notification(`Has seleccionado a ${pokemonName}`);
+          spawnNotification();
         }
       });
     }
@@ -47,17 +71,24 @@ function App() {
 
   return (
     <div className="container">
-      <h1>PokeApp DevOps</h1>
+      <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h1>PokeApp DevOps</h1>
+        {/* Indicador visual de estado offline para la defensa [cite: 11] */}
+        {!isOnline && (
+          <div style={{ background: '#ff4444', color: 'white', padding: '5px', borderRadius: '4px' }}>
+            ⚠️ Modo Offline - Trabajando con Caché
+          </div>
+        )}
+      </header>
+
       <div className="pokemon-grid">
         {pokemons.map((poke) => (
-          <div 
+          // USAMOS EL COMPONENTE SEGURO AQUÍ
+          <PokemonCard 
             key={poke.id} 
-            className="card" 
-            onClick={() => handleNotify(poke.name)} // Clic activa notificación
-          >
-            <img src={poke.sprites.front_default} alt={poke.name} />
-            <h3>{poke.name}</h3>
-          </div>
+            pokemon={poke} 
+            onClick={(p) => handleNotify(p.name)} 
+          />
         ))}
       </div>
     </div>
